@@ -1,4 +1,4 @@
-const WORDLIST = [
+const ENWORDS = [
   "abandon",
   "ability",
   "able",

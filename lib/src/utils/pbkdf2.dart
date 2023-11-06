@@ -21,11 +21,12 @@ class PBKDF2 {
   }) : _derivator =
             new PBKDF2KeyDerivator(new HMac(new SHA512Digest(), blockLength));
 
-  Uint8List process(String mnemonic, {passphrase: ""}) {
+  Uint8List process(String mnemonic, {passphrase = ""}) {
+    final Uint8List mnemonicBytes = Uint8List.fromList(utf8.encode(mnemonic));
     final salt = Uint8List.fromList(utf8.encode(saltPrefix + passphrase));
     _derivator.reset();
     _derivator
         .init(new Pbkdf2Parameters(salt, iterationCount, desiredKeyLength));
-    return _derivator.process(new Uint8List.fromList(mnemonic.codeUnits));
+    return _derivator.process(mnemonicBytes);
   }
 }

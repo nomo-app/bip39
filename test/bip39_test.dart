@@ -7,6 +7,7 @@ import 'package:hex/hex.dart';
 import 'package:test/test.dart';
 
 void main() {
+  bip39.initBip39Stopwatch();
   Map<String, dynamic> vectors =
       json.decode(File('./test/vectors.json').readAsStringSync(encoding: utf8));
 
@@ -22,6 +23,14 @@ void main() {
       } catch (err) {
         expect((err as ArgumentError).message, "Invalid entropy");
       }
+    });
+    test('all ones entropy', () {
+      final m = bip39.entropyToMnemonic('11111111111111111111111111111111');
+      expect(m, "baby mass dust captain baby mass dust captain baby mass dust casino");
+    });
+    test('all zeros entropy', () {
+      final m = bip39.entropyToMnemonic('00000000000000000000000000000000');
+      expect(m, "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about");
     });
 
     test('throws for entropy that\'s not a multitude of 4 bytes', () {
@@ -72,6 +81,14 @@ void main() {
       final words = (bip39.generateMnemonic(strength: 160)).split(' ');
       expect(words.length, equals(15),
           reason: 'can vary generated entropy bit length');
+    });
+
+    test('random mnemonics', () {
+      final m1 = bip39.generateMnemonic();
+      final m2 = bip39.generateMnemonic();
+      expect(m1.split(' ').length, 12);
+      expect(m2.split(' ').length, 12);
+      expect(m1 != m2, true);
     });
 
     test('requests the exact amount of data from an RNG', () {

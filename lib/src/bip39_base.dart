@@ -1,11 +1,19 @@
+import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
-
+import 'dart:io' as io;
+import 'package:bip39/src/wordlists/es.dart';
+import 'package:bip39/src/wordlists/fr.dart';
+import 'package:bip39/src/wordlists/it.dart';
+import 'package:bip39/src/wordlists/ja.dart';
+import 'package:bip39/src/wordlists/ko.dart';
+import 'package:bip39/src/wordlists/zhHans.dart';
+import 'package:bip39/src/wordlists/zhHant.dart';
 import 'package:crypto/crypto.dart' show sha256;
 import 'package:hex/hex.dart';
 
 import 'utils/pbkdf2.dart';
-import 'wordlists/english.dart';
+import 'wordlists/en.dart';
 
 const int _SIZE_BYTE = 255;
 const _INVALID_MNEMONIC = 'Invalid mnemonic';
@@ -37,7 +45,7 @@ String _deriveChecksumBits(Uint8List entropy) {
   return _bytesToBinary(Uint8List.fromList(hash.bytes)).substring(0, CS);
 }
 
-Uint8List _randomBytes(int size) {
+Uint8List _randomSecureBytes(int size) {
   final rng = Random.secure();
   final bytes = Uint8List(size);
   for (var i = 0; i < size; i++) {
@@ -46,8 +54,31 @@ Uint8List _randomBytes(int size) {
   return bytes;
 }
 
+final _stopWatch = Stopwatch();
+void initBip39Stopwatch() {
+  _stopWatch.start();
+}
+
+Uint8List _getRandomBytesMix(int strength) {
+  if (!_stopWatch.isRunning) {
+    throw ArgumentError("forgot to init stopWatch!");
+  }
+  final secureRandomness = _randomSecureBytes(32); // we expect that this alone should be already secure
+  final microsecondsSinceEpoch = utf8.encode(DateTime.now().microsecondsSinceEpoch.toString());
+  final microsecondsSinceAppLaunch = utf8.encode(_stopWatch.elapsedMicroseconds.toString());
+  final pid = utf8.encode(io.pid.toString());
+
+  final Uint8List combinedBytes = Uint8List.fromList(secureRandomness +
+      microsecondsSinceEpoch +
+      microsecondsSinceAppLaunch +
+      pid);
+  final hash = sha256.convert(sha256.convert(combinedBytes).bytes);
+  assert(strength >= 16 && strength <= 32);
+  return Uint8List.fromList(hash.bytes.sublist(0, strength));
+}
+
 String generateMnemonic(
-    {int strength = 128, RandomBytes randomBytes = _randomBytes}) {
+    {int strength = 128, RandomBytes randomBytes = _getRandomBytesMix}) {
   assert(strength % 32 == 0);
   final entropy = randomBytes(strength ~/ 8);
   return entropyToMnemonic(HEX.encode(entropy));
@@ -72,15 +103,24 @@ String entropyToMnemonic(String entropyString) {
       .allMatches(bits)
       .map((match) => match.group(0)!)
       .toList(growable: false);
-  List<String> wordlist = WORDLIST;
+  List<String> wordlist = ENWORDS; // only generate english mnemonics to avoid non-deterministic utf8-encoding
   String words =
       chunks.map((binary) => wordlist[_binaryToByte(binary)]).join(' ');
   return words;
 }
 
+Uint8List? _cachedSeed;
+
+void wipeCachedSeed() {
+  _cachedSeed = null;
+}
+
 Uint8List mnemonicToSeed(String mnemonic, {String passphrase = ""}) {
-  final pbkdf2 = new PBKDF2();
-  return pbkdf2.process(mnemonic, passphrase: passphrase);
+  if (_cachedSeed == null) {
+    final pbkdf2 = new PBKDF2();
+    _cachedSeed = pbkdf2.process(mnemonic, passphrase: passphrase);
+  }
+  return _cachedSeed!;
 }
 
 String mnemonicToSeedHex(String mnemonic, {String passphrase = ""}) {
@@ -99,11 +139,45 @@ bool validateMnemonic(String mnemonic) {
 }
 
 String mnemonicToEntropy(mnemonic) {
+  try {
+    return _mnemonicToEntropy(mnemonic, ENWORDS);
+  } catch (e) {
+    try {
+      return _mnemonicToEntropy(mnemonic, ESWORDS);
+    } catch (e) {
+      try {
+        return _mnemonicToEntropy(mnemonic, FRWORDS);
+      } catch (e) {
+        try {
+          return _mnemonicToEntropy(mnemonic, ITWORDS);
+        } catch (e) {
+          try {
+            return _mnemonicToEntropy(mnemonic, JAWORDS);
+          } catch (e) {
+            try {
+              return _mnemonicToEntropy(mnemonic, KOWORDS);
+            } catch (e) {
+              try {
+                return _mnemonicToEntropy(mnemonic, ZHHANSWORDS);
+              } catch (e) {
+                return _mnemonicToEntropy(mnemonic, ZHHANTWORDS);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+String _mnemonicToEntropy(String mnemonic, List<String> wordlist) {
   var words = mnemonic.split(' ');
   if (words.length % 3 != 0) {
     throw new ArgumentError(_INVALID_MNEMONIC);
   }
-  final wordlist = WORDLIST;
+  if (words.length < 12) {
+    throw new ArgumentError(_INVALID_MNEMONIC);
+  }
   // convert word indices to 11 bit binary strings
   final bits = words.map((word) {
     final index = wordlist.indexOf(word);
