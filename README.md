@@ -1,10 +1,26 @@
-# BIP39 with added security hardenings
+# Nomo BIP39
 
 Dart implementation of [Bitcoin BIP39](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki): Mnemonic code for generating deterministic keys
 
 Convert from [bitcoinjs/bip39](https://github.com/bitcoinjs/bip39)
 
-## Reminder for developers
+# Nomo Specific Changes
+
+In this fork, a few changes were made specifically for the Nomo App.
+
+## Security Hardening
+
+For the unlikely case that the random number generation of Dart is compromised, this fork includes an expanded RNG-algorithm that attempts to protect Nomo Users.
+
+## Fully Deterministic Wordlists
+
+In this fork, we try several languages sequentially until either a matching wordlist is found or an error gets returned.
+In practice, we find it better to return an error instead of recovering wallets with wrong ETH-addresses.
+By doing it that way, the user has a chance of correcting spelling mistakes instead of ending up with garbage-wallets.
+
+
+
+### Reminder for developers
 
 **_Please do not generate non-english phrases if it can be avoided_**
 
