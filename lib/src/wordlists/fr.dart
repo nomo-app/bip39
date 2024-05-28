@@ -1678,7 +1678,6 @@ const FRWORDS = [
   "ronce",
   "rondin",
   "roseau",
-  "réseau",
   "rosier",
   "rotatif",
   "rotor",
