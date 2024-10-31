@@ -63,9 +63,12 @@ Uint8List _getRandomBytesMix(int strength) {
   if (!_stopWatch.isRunning) {
     throw ArgumentError("forgot to init stopWatch!");
   }
-  final secureRandomness = _randomSecureBytes(32); // we expect that this alone should be already secure
-  final microsecondsSinceEpoch = utf8.encode(DateTime.now().microsecondsSinceEpoch.toString());
-  final microsecondsSinceAppLaunch = utf8.encode(_stopWatch.elapsedMicroseconds.toString());
+  final secureRandomness = _randomSecureBytes(
+      32); // we expect that this alone should be already secure
+  final microsecondsSinceEpoch =
+      utf8.encode(DateTime.now().microsecondsSinceEpoch.toString());
+  final microsecondsSinceAppLaunch =
+      utf8.encode(_stopWatch.elapsedMicroseconds.toString());
   final pid = utf8.encode(io.pid.toString());
 
   final Uint8List combinedBytes = Uint8List.fromList(secureRandomness +
@@ -103,7 +106,8 @@ String entropyToMnemonic(String entropyString) {
       .allMatches(bits)
       .map((match) => match.group(0)!)
       .toList(growable: false);
-  List<String> wordlist = ENWORDS; // only generate english mnemonics to avoid non-deterministic utf8-encoding
+  List<String> wordlist =
+      ENWORDS; // only generate english mnemonics to avoid non-deterministic utf8-encoding
   String words =
       chunks.map((binary) => wordlist[_binaryToByte(binary)]).join(' ');
   return words;
@@ -115,9 +119,17 @@ void wipeCachedSeed() {
   _cachedSeed = null;
 }
 
+void setCachedSeed(Uint8List seed) {
+  _cachedSeed = seed;
+}
+
+Uint8List? getCachedSeed() {
+  return _cachedSeed;
+}
+
 Uint8List mnemonicToSeed(String mnemonic, {String passphrase = ""}) {
   if (_cachedSeed == null) {
-    final pbkdf2 = new PBKDF2();
+    final pbkdf2 = PBKDF2();
     _cachedSeed = pbkdf2.process(mnemonic, passphrase: passphrase);
   }
   return _cachedSeed!;
