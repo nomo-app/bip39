@@ -26,11 +26,13 @@ void main() {
     });
     test('all ones entropy', () {
       final m = bip39.entropyToMnemonic('11111111111111111111111111111111');
-      expect(m, "baby mass dust captain baby mass dust captain baby mass dust casino");
+      expect(m,
+          "baby mass dust captain baby mass dust captain baby mass dust casino");
     });
     test('all zeros entropy', () {
       final m = bip39.entropyToMnemonic('00000000000000000000000000000000');
-      expect(m, "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about");
+      expect(m,
+          "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about");
     });
 
     test('throws for entropy that\'s not a multitude of 4 bytes', () {
